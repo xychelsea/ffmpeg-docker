@@ -120,7 +120,7 @@ RUN conda clean -afy
 # Clean packages and caches
 RUN apt-get --purge -y autoremove \
         wget \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* ${HOME}/ffmpeg* \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* ${HOME}/FFmpeg* \
     && rm -rvf /home/${ANACONDA_PATH}/.cache/yarn \
     && fix-permissions ${HOME} \
     && fix-permissions ${ANACONDA_PATH}
