@@ -47,7 +47,9 @@ docker run --gpus all --rm -it -d
 
 ## Using FFmpeg
 
-Once inside the container, as the default user ```anaconda```, you can use the compiler to transcode using hardware acceleration. First, however, enter ```nvidia-smi``` to see whether the container can see your NVIDIA devices.
+Once inside the container, as the default user ```anaconda```, you can use the compiler to transcode using hardware acceleration.
+
+First, however, enter ```nvidia-smi``` to see whether the container can see your NVIDIA devices. Second, check to ensure that directory of ```ffmpeg``` is ```/usr/local/ffmpeg-nvidia``` by entering ```which ffmpeg``` into a shell. Lastly, ensure that the compiled version of ```ffmpeg``` has access to both the hardware encoder and decoder using ```ffmpeg -codecs | grep -e cuvid``` and ```ffmpeg -codecs | grep -e nvenc``` respectively.
 
 In this example, we transcode an H.264/MPEG-4 AVC video file ```input.mp4``` into an H.265/MPEG-4 HEVC video file ``output.mp4``` using the ```cuvid``` decoder and ```nvenc``` encoder (see the [NVIDIA Transcoding Guide](https://developer.nvidia.com/blog/nvidia-ffmpeg-transcoding-guide/) for more details on hardware decoding and encoding)
 
