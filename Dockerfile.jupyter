@@ -1,4 +1,4 @@
-# DeepFaceLab Dockerfile for Anaconda with TensorFlow stack
+# NVIDIA/CUDA enabled FFmpeg Dockerfile for Anaconda
 # Copyright (C) 2020, 2021  Chelsea E. Manning
 #
 # This program is free software: you can redistribute it and/or modify
