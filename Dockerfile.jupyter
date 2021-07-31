@@ -14,12 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-FROM xychelsea/anaconda3:v0.3-gpu-jupyter
+FROM xychelsea/anaconda3:v0.4-gpu-jupyter
 LABEL description="FFmpeg GPU Container w/ Jupyter Notebooks"
 
 # $ docker build --network=host -t xychelsea/ffmpeg-nvidia:latest-jupyter -f Dockerfile.jupyter .
-# # $ docker run --rm -it -d -p 8888:8888 xychelsea/ffmpeg-nvidia:latest-jupyter
+# # $ docker run --gpus all --rm -it -d -p 8888:8888 xychelsea/ffmpeg-nvidia:latest-jupyter
 # # $ docker push xychelsea/ffmpeg-nvidia:latest-jupyter
+
+ARG FFMPEG_VERSION="4.4" 
+
+ENV FFMPEG_VERSION="${FFMPEG_VERSION}"
 
 # Start as root
 USER root
@@ -31,17 +35,97 @@ RUN apt-get update --fix-missing \
 
 # Install dependencies
 RUN apt-get -y install \
+    cleancss \
+    doxygen \
+    debhelper-compat \
+    flite1-dev \
+    frei0r-plugins-dev \
+    ladspa-sdk libaom-dev \
+    libaribb24-dev \
+    libass-dev \
+    libbluray-dev \
+    libbs2b-dev \
+    libbz2-dev \
+    libcaca-dev \
+    libcdio-paranoia-dev \
+    libchromaprint-dev \
+    libcodec2-dev \
+    libdc1394-22-dev \
+    libdrm-dev \
+    libfdk-aac-dev \
+    libffmpeg-nvenc-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libfribidi-dev \
+    libgl1-mesa-dev \
+    libgme-dev \
+    libgnutls28-dev \
+    libgsm1-dev \
+    libiec61883-dev \
+    libavc1394-dev \
+    libjack-jackd2-dev \
+    liblensfun-dev \
+    liblilv-dev \
+    liblzma-dev \
+    libmp3lame-dev \
+    libmysofa-dev \
+    libopenal-dev \
+    libomxil-bellagio-dev \
+    libopencore-amrnb-dev \
+    libopencore-amrwb-dev \
+    libopenjp2-7-dev \
+    libopenmpt-dev \
+    libopus-dev \
+    libpulse-dev \
+    librubberband-dev \
+    librsvg2-dev \
+    libsctp-dev \
+    libsdl2-dev \
+    libshine-dev \
+    libsnappy-dev \
+    libsoxr-dev \
+    libspeex-dev \
+    libssh-gcrypt-dev \
+    libtesseract-dev \
+    libtheora-dev \
+    libtwolame-dev \
+    libva-dev \
+    libvdpau-dev \
+    libvidstab-dev \
+    libvo-amrwbenc-dev \
+    libvorbis-dev \
+    libvpx-dev \
+    libwavpack-dev \
+    libwebp-dev \
+    libx264-dev \
+    libx265-dev \
+    libxcb-shape0-dev \
+    libxcb-shm0-dev \
+    libxcb-xfixes0-dev \
+    libxml2-dev \
+    libxv-dev \
+    libxvidcore-dev \
+    libxvmc-dev \
+    libzmq3-dev \
+    libzvbi-dev \
+    nasm \
+    node-less \
+    ocl-icd-opencl-dev \
+    pkg-config \
+    texinfo \
+    tree \
     wget \
-    debhelper-compat flite1-dev frei0r-plugins-dev ladspa-sdk libaom-dev libaribb24-dev libass-dev libbluray-dev libbs2b-dev libbz2-dev libcaca-dev libcdio-paranoia-dev libchromaprint-dev libcodec2-dev libdc1394-22-dev libdrm-dev libfdk-aac-dev libffmpeg-nvenc-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libgl1-mesa-dev libgme-dev libgnutls28-dev libgsm1-dev libiec61883-dev libavc1394-dev libjack-jackd2-dev liblensfun-dev liblilv-dev liblzma-dev libmp3lame-dev libmysofa-dev libopenal-dev libomxil-bellagio-dev libopencore-amrnb-dev libopencore-amrwb-dev libopenjp2-7-dev libopenmpt-dev libopus-dev libpulse-dev librubberband-dev librsvg2-dev libsctp-dev libsdl2-dev libshine-dev libsnappy-dev libsoxr-dev libspeex-dev libssh-gcrypt-dev libtesseract-dev libtheora-dev libtwolame-dev libva-dev libvdpau-dev libvidstab-dev libvo-amrwbenc-dev libvorbis-dev libvpx-dev libwavpack-dev libwebp-dev libx264-dev libx265-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-xfixes0-dev libxml2-dev libxv-dev libxvidcore-dev libxvmc-dev libzmq3-dev libzvbi-dev ocl-icd-opencl-dev pkg-config texinfo nasm zlib1g-dev cleancss doxygen node-less tree
+    zlib1g-dev
 
 # Switch to user "anaconda"
 USER ${ANACONDA_UID}
 WORKDIR ${HOME}
 
+# Build ffmpeg
 RUN cd ~ \
-    && wget -O ~/FFmpeg-n4.4.orig.tar.xz https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n4.4.tar.gz \
-    && tar -xvf FFmpeg-n4.4.orig.tar.xz \
-    && cd ~/FFmpeg-n4.4 \
+    && wget -O ~/ffmpeg-${FFMPEG_VERSION}.tar.gz https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.gz \
+    && tar -xvf ffmpeg-${FFMPEG_VERSION}.tar.gz \
+    && cd ~/ffmpeg-${FFMPEG_VERSION} \
     && ./configure --prefix=/usr/local/ffmpeg-nvidia \
         --extra-cflags=-I/usr/local/cuda/include \
         --extra-ldflags=-L/usr/local/cuda/lib64 \
@@ -104,10 +188,13 @@ RUN cd ~ \
 
 USER root
 
-RUN cd /home/anaconda/FFmpeg-n4.4 \
+RUN cd /home/anaconda/ffmpeg-${FFMPEG_VERSION} \
    && make install
 
 USER $ANACONDA_UID
+
+# Clean build files
+RUN cd ~ && rm -rvf ~/ffmpeg-${VERISON}.tar.gz ~/ffmpeg-${VERSION}
 
 RUN echo 'PATH="/usr/local/ffmpeg-nvidia/bin:$PATH"' >> $HOME/.bashrc
 
