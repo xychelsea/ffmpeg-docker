@@ -194,7 +194,7 @@ RUN cd /home/anaconda/ffmpeg-${FFMPEG_VERSION} \
 USER $ANACONDA_UID
 
 # Clean build files
-RUN cd ~ && rm -rvf ~/ffmpeg-${VERISON}.tar.gz ~/ffmpeg-${VERSION}
+RUN cd ~ && rm -rvf /home/anaconda/ffmpeg-${VERISON}.tar.gz /home/anaconda/ffmpeg-${VERSION}
 
 RUN echo 'PATH="/usr/local/ffmpeg-nvidia/bin:$PATH"' >> $HOME/.bashrc
 
