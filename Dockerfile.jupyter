@@ -68,6 +68,7 @@ RUN apt-get -y install \
     liblzma-dev \
     libmp3lame-dev \
     libmysofa-dev \
+    libnvidia-encode1 \
     libopenal-dev \
     libomxil-bellagio-dev \
     libopencore-amrnb-dev \
