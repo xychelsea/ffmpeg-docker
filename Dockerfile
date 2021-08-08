@@ -69,8 +69,8 @@ RUN apt-get -y install \
     libmp3lame-dev \
     libmysofa-dev \
     libnvidia-compute-470-server \
-    libnvidia-encode-470-server \
     libnvidia-decode-470-server \
+    libnvidia-encode-470-server \
     libopenal-dev \
     libomxil-bellagio-dev \
     libopencore-amrnb-dev \
