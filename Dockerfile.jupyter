@@ -1,5 +1,5 @@
 # NVIDIA/CUDA enabled FFmpeg Dockerfile for Anaconda
-# Copyright (C) 2020, 2021  Chelsea E. Manning
+# Copyright (C) 2020-2022  Chelsea E. Manning
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,14 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-FROM xychelsea/anaconda3:v0.4.1-gpu-jupyter
+FROM xychelsea/anaconda3:v0.5.1-gpu-jupyter
 LABEL description="FFmpeg GPU Container w/ Jupyter Notebooks"
 
 # $ docker build --network=host -t xychelsea/ffmpeg-nvidia:latest-jupyter -f Dockerfile.jupyter .
 # # $ docker run --gpus all --rm -it -d -p 8888:8888 xychelsea/ffmpeg-nvidia:latest-jupyter
 # # $ docker push xychelsea/ffmpeg-nvidia:latest-jupyter
 
-ARG FFMPEG_VERSION="4.4" 
+ARG FFMPEG_VERSION="5.0.1"
 ENV FFMPEG_VERSION="${FFMPEG_VERSION}"
 
 # Start as root
@@ -133,7 +133,7 @@ RUN wget -O ${HOME}/ffmpeg-${FFMPEG_VERSION}.tar.gz https://ffmpeg.org/releases/
         --toolchain=hardened \
         --enable-gpl \
         --disable-stripping \
-        --enable-avresample --disable-filter=resample \
+        --disable-filter=resample \
         --enable-cuvid \
         --enable-gnutls \
         --enable-ladspa \
