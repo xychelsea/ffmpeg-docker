@@ -1,55 +1,112 @@
 FFMPEG NVIDIA/CUDA GPU-enabled Docker Container
 -----
-Provides an [NVIDIA GPU-enabled](https://hub.docker.com/r/nvidia/cuda) container with [FFmpeg](https://ffmpeg.org/) pre-installed on an [Anaconda](https://www.anaconda.com/) container ```xychelsea/ffmpeg-nvidia:latest```, and optional [Jupyter Notebooks](https://jupyter.org/) container ```xychelsea/ffmpeg:latest-jupyter```.
+Provides an [NVIDIA GPU-enabled](https://hub.docker.com/r/nvidia/cuda) container with [FFmpeg 8.0](https://ffmpeg.org/) pre-installed with full hardware acceleration support.
 
 FFmpeg with NVIDIA/CUDA support
 -----
 FFmpeg is the leading multimedia framework, able to decode, encode, transcode, mux, demux, stream, filter and play pretty much anything that humans and machines have created. It supports the most obscure ancient formats up to the cutting edge. No matter if they were designed by some standards committee, the community or a corporation. It is also highly portable: FFmpeg compiles, runs, and passes our testing infrastructure FATE across Linux, Mac OS X, Microsoft Windows, the BSDs, Solaris, etc. under a wide variety of build environments, machine architectures, and configurations.
 
-[Anaconda](https://anaconda.com/) is an open data science platform based on Python 3. This container allows you to create custom Anaconda environments through the ```conda``` command with a lightweight version of Anaconda (Miniconda) and the ```conda-forge``` [repository](https://conda-forge.org/) in the ```/usr/local/anaconda``` directory. The default user, ```anaconda``` runs a [Tini shell](https://github.com/krallin/tini/) ```/usr/bin/tini```, and comes preloaded with the ```conda``` command in the environment ```$PATH```. An additional flavor of this container provides [Jupyter Notebooks](https://jupyter.org/) tags.
+This container is built using a lightweight [NVIDIA CUDA base image](https://hub.docker.com/r/nvidia/cuda) with Ubuntu 22.04, providing minimal overhead while maintaining full GPU acceleration capabilities. The container uses a multi-stage build process to optimize image size and build time.
 
-### NVIDIA/CUDA GPU-enabled Containers
+### NVIDIA/CUDA GPU-enabled Container
 
-Two flavors provide an [NVIDIA GPU-enabled](https://hub.docker.com/r/nvidia/cuda) container with [TensorFlow](https://tensorflow.org) pre-installed through [Anaconda](https://anaconda.com/).
+This container provides an [NVIDIA GPU-enabled](https://hub.docker.com/r/nvidia/cuda) environment with FFmpeg 8.0 compiled with full hardware acceleration support, including NVENC encoding and CUVID decoding.
 
-## Getting the containers
+## Getting the container
 
-The base container, based on the ```xychelsea/anaconda3:latest-gpu``` from the [Anaconda 3 container stack](https://hub.docker.com/r/xychelsea/anaconda3) (```xychelsea/anaconda3:latest```) running Tini shell. For the container with a ```/usr/bin/tini``` entry point, use:
+Pull the container from Docker Hub:
 
 ```bash
 docker pull xychelsea/ffmpeg-nvidia:latest
 ```
 
-With Jupyter Notebooks server pre-installed, pull with:
+## Running the container
+
+### Using Docker Run
+
+To run the container with NVIDIA GPU support, use the ```docker run``` command with a bound volume directory ```workspace``` attached at mount point ```/home/ffmpeg/workspace```.
 
 ```bash
-docker pull xychelsea/ffmpeg-nvidia:latest-jupyter
-```
-
-## Running the containers
-
-To run the containers with the generic Docker application or NVIDIA enabled Docker, use the ```docker run``` command with a bound volume directory ```workspace``` attached at mount point ```/home/anaconda/workspace```.
-
-```bash
-docker run --gpus all --rm -it
-     -v workspace:/home/anaconda/workspace \
+docker run --gpus all --rm -it \
+     -v workspace:/home/ffmpeg/workspace \
      xychelsea/ffmpeg-nvidia:latest /bin/bash
 ```
 
-With Jupyter Notebooks server pre-installed, run with:
+### Using Docker Compose
+
+A `docker-compose.yml` file is provided with multiple service configurations for different use cases. This is the recommended approach for easier management and configuration.
+
+#### Prerequisites
+
+- Docker Compose v1.28+ or Docker Compose v2.0+
+- NVIDIA Container Toolkit installed on the host
+- Create input and output directories (or customize paths in `.env`)
+
+#### Quick Start
+
+1. **Create directories** (or customize in `.env`):
+   ```bash
+   mkdir -p input output scripts
+   ```
+
+2. **Interactive shell** - For manual FFmpeg operations:
+   ```bash
+   docker-compose run --rm ffmpeg-interactive
+   ```
+
+3. **Transcode a file** - One-shot transcoding with GPU acceleration:
+   ```bash
+   # Set input/output files via environment variables
+   INPUT_FILE=input.mp4 OUTPUT_FILE=output.mp4 docker-compose run --rm ffmpeg-transcode
+   ```
+
+4. **Batch processing** - Process multiple files:
+   ```bash
+   # Create a batch script in ./scripts/batch-process.sh
+   docker-compose run --rm ffmpeg-batch
+   ```
+
+5. **Stream processing** - Real-time streaming:
+   ```bash
+   RTMP_URL=rtmp://your-server/live/stream docker-compose up -d ffmpeg-stream
+   ```
+
+#### Available Services
+
+- **`ffmpeg-interactive`**: Interactive shell for manual operations
+- **`ffmpeg-transcode`**: One-shot transcoding job (H.264 to HEVC example)
+- **`ffmpeg-batch`**: Batch processing service for multiple files
+- **`ffmpeg-stream`**: Real-time streaming service with GPU encoding
+
+#### Environment Variables
+
+Create a `.env` file to customize configuration:
 
 ```bash
-docker run --gpus all --rm -it -d
-     -v workspace:/home/anaconda/workspace \
-     -p 8888:8888 \
-     xychelsea/deepfacelab:latest-jupyter
+# GPU Configuration
+NVIDIA_VISIBLE_DEVICES=all
+CUDA_VISIBLE_DEVICES=
+
+# Directory paths (relative to docker-compose.yml)
+INPUT_DIR=./input
+OUTPUT_DIR=./output
+SCRIPTS_DIR=./scripts
+
+# File names (for transcode service)
+INPUT_FILE=input.mp4
+OUTPUT_FILE=output.mp4
+
+# Streaming (for stream service)
+RTMP_URL=rtmp://localhost/live/stream
 ```
+
+See `docker-compose.yml` for detailed comments and additional configuration options.
 
 ## Using FFmpeg
 
-Once inside the container, as the default user ```anaconda```, you can use the compiler to transcode using hardware acceleration.
+Once inside the container, as the default user ```ffmpeg```, you can use FFmpeg to transcode using hardware acceleration.
 
-First, however, enter ```nvidia-smi``` to see whether the container can see your NVIDIA devices. Second, check to ensure that directory of ```ffmpeg``` is ```/usr/local/ffmpeg-nvidia``` by entering ```which ffmpeg``` into a shell. Lastly, ensure that the compiled version of ```ffmpeg``` has access to both the hardware encoder and decoder using ```ffmpeg -codecs | grep -e cuvid``` and ```ffmpeg -codecs | grep -e nvenc``` respectively.
+First, enter ```nvidia-smi``` to see whether the container can see your NVIDIA devices. Second, check to ensure that the directory of ```ffmpeg``` is ```/usr/local/ffmpeg-nvidia/bin``` by entering ```which ffmpeg``` into a shell. Lastly, ensure that the compiled version of ```ffmpeg``` has access to both the hardware encoder and decoder using ```ffmpeg -codecs | grep -e cuvid``` and ```ffmpeg -codecs | grep -e nvenc``` respectively.
 
 In this example, we transcode an H.264/MPEG-4 AVC video file ```input.mp4``` into an H.265/MPEG-4 HEVC video file ```output.mp4``` using the ```cuvid``` decoder and ```nvenc``` encoder (see the [NVIDIA Transcoding Guide](https://developer.nvidia.com/blog/nvidia-ffmpeg-transcoding-guide/) for more details on hardware decoding and encoding)
 
@@ -64,29 +121,28 @@ ffmpeg \
     output.mp4
 ```
 
-## Building the containers
+## Building the container
 
-To build either the GPU-enabled container, use the [ffmpeg-docker](https://github.com/xychelsea/ffmpeg-docker) GitHub repository.
+To build the GPU-enabled container, use the [ffmpeg-docker](https://github.com/xychelsea/ffmpeg-docker) GitHub repository.
 
 ```bash
 git clone git://github.com/xychelsea/ffmpeg-docker.git
+cd ffmpeg-docker
 ```
 
 ### Compiling FFmpeg with NVIDIA/CUDA GPU support
 
 ```bash
-docker build -t ffmpeg-nvidia:latest -f Dockerfile .
+docker build --network=host -t xychelsea/ffmpeg-nvidia:latest -f Dockerfile .
 ```
 
-With Jupyter Notebooks server pre-installed, build with:
-
-```
-docker build -t ffmpeg-nvidia:latest-jupyter -f Dockerfile.jupyter .
-```
+The build process uses a multi-stage approach:
+- **Builder stage**: Compiles FFmpeg 8.0 from source with all codecs and libraries
+- **Runtime stage**: Creates a minimal image with only the compiled binaries and runtime dependencies
 
 ## Default Compiler Flags
 
-The default compiler configuration file uses the following flags:
+The default compiler configuration uses the following flags:
 
 ```
 ./configure
@@ -96,7 +152,7 @@ The default compiler configuration file uses the following flags:
         --toolchain=hardened \
         --enable-gpl \
         --disable-stripping \
-        --enable-avresample --disable-filter=resample \
+        --disable-filter=resample \
         --enable-cuvid \
         --enable-gnutls \
         --enable-ladspa \
@@ -150,9 +206,16 @@ The default compiler configuration file uses the following flags:
         --enable-sdl2
 ```
 
+## Base Image
+
+This container is based on `nvidia/cuda:12.5.1-base-ubuntu22.04`, providing:
+- CUDA 12.5.1 runtime support
+- Ubuntu 22.04 LTS
+- Minimal image size with only essential CUDA libraries
+
 ## References
 
 - [FFmpeg](https://ffmpeg.org)
 - [NVIDIA CUDA container](https://hub.docker.com/r/nvidia/cuda)
-- [Anaconda 3](https://www.anaconda.com/blog/tensorflow-in-anaconda)
-- [conda-forge](https://conda-forge.org/)
+- [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit)
+- [NVIDIA Transcoding Guide](https://developer.nvidia.com/blog/nvidia-ffmpeg-transcoding-guide/)

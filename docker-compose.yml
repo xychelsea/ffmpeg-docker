@@ -1,0 +1,154 @@
+# Docker Compose configuration for FFmpeg 8.0 NVIDIA GPU container
+# This file provides multiple service examples for different use cases:
+# - Interactive shell access
+# - One-shot transcoding jobs
+# - Batch processing
+#
+# Prerequisites:
+# - NVIDIA Container Toolkit installed on the host
+# - Docker Compose v1.28+ or Docker Compose v2.0+
+# - NVIDIA GPU with appropriate drivers
+
+services:
+  # Interactive service - for manual FFmpeg operations and testing
+  # Usage: docker-compose run --rm ffmpeg-interactive
+  #        docker-compose up -d ffmpeg-interactive (then: docker-compose exec ffmpeg-interactive bash)
+  ffmpeg-interactive:
+    image: xychelsea/ffmpeg-nvidia:latest
+    container_name: ffmpeg-interactive
+    environment:
+      # GPU visibility - set to 'all' or specific GPU IDs (e.g., '0,1')
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      # GPU capabilities required for Fmpeg (compute, video encoding/decoding, utility)
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      # Optional: Limit CUDA to specific devices (overrides NVIDIA_VISIBLE_DEVICES)
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+      # Timezone for logging (optional)
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Mount input directory
+      - ${INPUT_DIR:-./input}:/home/ffmpeg/workspace/input:ro
+      # Mount output directory (read-write)
+      - ${OUTPUT_DIR:-./output}:/home/ffmpeg/workspace/output:rw
+      # Optional: Mount for scripts or configuration files
+      - ${SCRIPTS_DIR:-./scripts}:/home/ffmpeg/workspace/scripts:ro
+    working_dir: /home/ffmpeg/workspace
+    stdin_open: true
+    tty: true
+    # Default command is /bin/bash (interactive shell)
+    # Override with: docker-compose run --rm ffmpeg-interactive <command>
+    command: /bin/bash
+    # Alternative GPU configuration using deploy (Docker Compose v3.8+)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    # Transcode service - one-shot transcoding job with GPU acceleration
+    # Usage: docker-compose run --rm ffmpeg-transcode
+    # Example: Transcodes H.264 input to HEVC using cuvid decoder and nvenc encoder
+  ffmpeg-transcode:
+    image: xychelsea/ffmpeg-nvidia:latest
+    container_name: ffmpeg-transcode
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+      - TZ=${TZ:-UTC}
+      # Input and output filenames (can be overridden)
+      - INPUT_FILE=${INPUT_FILE:-input.mp4}
+      - OUTPUT_FILE=${OUTPUT_FILE:-output.mp4}
+    volumes:
+      - ${INPUT_DIR:-./input}:/home/ffmpeg/workspace/input:ro
+      - ${OUTPUT_DIR:-./output}:/home/ffmpeg/workspace/output:rw
+    working_dir: /home/ffmpeg/workspace
+    # Example FFmpeg 8.0 command with GPU acceleration:
+    # - h264_cuvid: Hardware-accelerated H.264 decoding
+    # - hevc_nvenc: Hardware-accelerated HEVC encoding
+    # - cq:v 23: Constant quality mode (lower = better quality, higher file size)
+    # Customize this command for your specific needs
+    command: >
+      ffmpeg -vsync 0 -hwaccel cuvid -c:v h264_cuvid -i input/${INPUT_FILE} -c:v hevc_nvenc -preset p4 -cq:v 23 -c:a copy output/${OUTPUT_FILE}
+    # Alternative GPU configuration
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    # Batch processing service - processes multiple files
+    # Usage: docker-compose run --rm ffmpeg-batch
+    # Requires a script in the scripts directory to process multiple files
+  ffmpeg-batch:
+    image: xychelsea/ffmpeg-nvidia:latest
+    container_name: ffmpeg-batch
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ${INPUT_DIR:-./input}:/home/ffmpeg/workspace/input:ro
+      - ${OUTPUT_DIR:-./output}:/home/ffmpeg/workspace/output:rw
+      - ${SCRIPTS_DIR:-./scripts}:/home/ffmpeg/workspace/scripts:ro
+    working_dir: /home/ffmpeg/workspace
+    # Example: Run a batch processing script
+    # Create a script in ./scripts/batch-process.sh that processes files
+    command: /bin/bash -c "chmod +x scripts/*.sh 2>/dev/null; scripts/batch-process.sh || echo 'No batch script found. Create scripts/batch-process.sh'"
+    # Alternative GPU configuration
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    # Stream processing service - for real-time streaming scenarios
+    # Usage: docker-compose up -d ffmpeg-stream
+    # Example: Streams input to RTMP endpoint with GPU acceleration
+  ffmpeg-stream:
+    image: xychelsea/ffmpeg-nvidia:latest
+    container_name: ffmpeg-stream
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+      - TZ=${TZ:-UTC}
+      # RTMP stream URL (override via environment)
+      - RTMP_URL=${RTMP_URL:-rtmp://localhost/live/stream}
+    volumes:
+      - ${INPUT_DIR:-./input}:/home/ffmpeg/workspace/input:ro
+    network_mode: host
+    working_dir: /home/ffmpeg/workspace
+    # Example: Stream with GPU encoding
+    # Adjust input source and RTMP URL as needed
+    command: >
+      ffmpeg -re -i input/${INPUT_FILE:-input.mp4} -c:v h264_nvenc -preset p4 -b:v 4M -maxrate 4M -bufsize 8M -g 50 -c:a aac -b:a 128k -f flv ${RTMP_URL}
+    restart: unless-stopped
+    # Alternative GPU configuration
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    # Optional: Named volumes (uncomment if you prefer named volumes over bind mounts)
+    # volumes:
+    #   ffmpeg-input:
+    #     driver: local
+    #   ffmpeg-output:
+    #     driver: local
+
+    # Optional: Custom networks (uncomment if you need custom networking)
+    # networks:
+    #   ffmpeg-network:
+    #     driver: bridge
+
